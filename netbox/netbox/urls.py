@@ -62,6 +62,9 @@ _patterns = [
     # Admin
     url(r'^admin/', admin_site.urls),
 
+    # django-prometheus
+    url('', include('django_prometheus.urls')),
+
 ]
 
 if settings.WEBHOOKS_ENABLED:

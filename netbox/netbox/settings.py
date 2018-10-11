@@ -107,7 +107,7 @@ if LDAP_CONFIGURED:
         )
 
 # Database
-configuration.DATABASE.update({'ENGINE': 'django.db.backends.postgresql'})
+configuration.DATABASE.update({'ENGINE': 'django_prometheus.db.backends.postgresql'})
 DATABASES = {
     'default': configuration.DATABASE,
 }
@@ -140,6 +140,7 @@ INSTALLED_APPS = [
     'corsheaders',
     'debug_toolbar',
     'django_filters',
+    'django_prometheus',
     'django_tables2',
     'mptt',
     'rest_framework',
@@ -164,6 +165,7 @@ if WEBHOOKS_ENABLED:
 
 # Middleware
 MIDDLEWARE = (
+    'django_prometheus.middleware.PrometheusBeforeMiddleware',
     'debug_toolbar.middleware.DebugToolbarMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
@@ -177,6 +179,7 @@ MIDDLEWARE = (
     'utilities.middleware.LoginRequiredMiddleware',
     'utilities.middleware.APIVersionMiddleware',
     'extras.middleware.ObjectChangeMiddleware',
+    'django_prometheus.middleware.PrometheusAfterMiddleware',
 )
 
 ROOT_URLCONF = 'netbox.urls'
