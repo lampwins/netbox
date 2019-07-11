@@ -3,6 +3,8 @@ import os
 import platform
 import socket
 import warnings
+from distutils.version import LooseVersion
+from importlib import import_module
 
 from django.contrib.messages import constants as messages
 from django.core.exceptions import ImproperlyConfigured
@@ -83,6 +85,8 @@ NAPALM_PASSWORD = getattr(configuration, 'NAPALM_PASSWORD', '')
 NAPALM_TIMEOUT = getattr(configuration, 'NAPALM_TIMEOUT', 30)
 NAPALM_USERNAME = getattr(configuration, 'NAPALM_USERNAME', '')
 PAGINATE_COUNT = getattr(configuration, 'PAGINATE_COUNT', 50)
+PLUGINS = getattr(configuration, 'PLUGINS', [])
+PLUGINS_CONFIG = getattr(configuration, 'PLUGINS_CONFIG', {})
 PREFER_IPV4 = getattr(configuration, 'PREFER_IPV4', False)
 REPORTS_ROOT = getattr(configuration, 'REPORTS_ROOT', os.path.join(BASE_DIR, 'reports')).rstrip('/')
 SESSION_FILE_PATH = getattr(configuration, 'SESSION_FILE_PATH', None)
@@ -189,6 +193,69 @@ INSTALLED_APPS = [
 if WEBHOOKS_ENABLED:
     INSTALLED_APPS.append('django_rq')
 
+
+#
+# Plugins
+#
+
+for plugin in PLUGINS:
+    if plugin in INSTALLED_APPS:
+        raise ImproperlyConfigured(
+            "{} is a restricted plugin name".format(plugin)
+        )
+
+    try:
+        # Ensure the plugin package is installed and appears to be a NetBox plugin
+        module = import_module(plugin)
+        default_app_config = getattr(module, 'default_app_config')
+        module, app_config = default_app_config.rsplit('.', 1)
+        app_config = getattr(import_module(module), app_config)
+
+        # Validate version contraints if the plugin defines them
+        min_version = getattr(app_config, 'netbox_min_version', VERSION)
+        if LooseVersion(VERSION) < LooseVersion(min_version):
+            raise ImproperlyConfigured(
+                "{} specifies a minumum NetBox version of {} but NetBox is version {}".format(
+                    plugin,
+                    min_version,
+                    VERSION
+                )
+            )
+        max_version = getattr(app_config, 'netbox_max_version', VERSION)
+        if LooseVersion(VERSION) > LooseVersion(max_version):
+            raise ImproperlyConfigured(
+                "{} specifies a maximum NetBox version of {} but NetBox is version {}".format(
+                    plugin,
+                    max_version,
+                    VERSION
+                )
+            )
+
+    except (AttributeError, ImportError):
+        raise ImproperlyConfigured(
+            "{} is not installed or is not a valid NetBox plugin.".format(plugin)
+        )
+
+    # Verify required configuration settings
+    if plugin not in PLUGINS_CONFIG:
+        PLUGINS_CONFIG[plugin] = {}
+    for setting in getattr(app_config, 'required_configuration_settings', []):
+        if setting not in PLUGINS_CONFIG[plugin]:
+            raise ImproperlyConfigured(
+                "{} requires {} to be present in the PLUGINS_CONFIG section of configuration.py.".format(
+                    plugin, 
+                    setting
+                )
+            )
+
+    # Set defined default setting values
+    for setting, value in getattr(app_config, 'default_configuration_settings', {}):
+        if setting not in PLUGINS_CONFIG[plugin]:
+            PLUGINS_CONFIG[plugin][setting] = value
+
+    INSTALLED_APPS.append(plugin)
+
+
 # Middleware
 MIDDLEWARE = (
     'debug_toolbar.middleware.DebugToolbarMiddleware',
@@ -224,6 +291,7 @@ TEMPLATES = [
                 'django.contrib.auth.context_processors.auth',
                 'django.contrib.messages.context_processors.messages',
                 'utilities.context_processors.settings',
+                'utilities.context_processors.plugin_nav_links',
             ],
         },
     },

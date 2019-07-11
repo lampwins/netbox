@@ -415,6 +415,34 @@
                         </li>
                     </ul>
                 </li>
+                {% if plugin_nav_links.app_paths %}
+                    <li class="dropdown{% for app_path in plugin_nav_links.app_paths%}{% if request.path|contains:app_path %} active{% endif %}{% endfor %}">
+                        {% for app_verbose_name, link_sets in plugin_nav_links.app_links.items %}
+                            <a href="#" class="dropdown-toggle" data-toggle="dropdown" role="button" aria-haspopup="true" aria-expanded="false">Plugins <span class="caret"></span></a>
+                            <ul class="dropdown-menu">
+                                <li class="dropdown-header">{{app_verbose_name}}</li>
+                                {% for link_set in link_sets %}
+                                    <li{% if link_set.primary.permission and not link_set.primary.permission in perms %} class="disabled"{% endif %}>
+                                        {% if link_set.add.permission is None or link_set.add.permission in perms %}
+                                            <div class="buttons pull-right">
+                                                {% if link_set.add %}
+                                                    <a href="{% url link_set.add.view %}" class="btn btn-xs btn-success" title="Add"><i class="fa fa-plus"></i></a>
+                                                {% endif %}
+                                                {% if link_set.import %}
+                                                    <a href="{% url link_set.import.view %}" class="btn btn-xs btn-info" title="Import"><i class="fa fa-download"></i></a>
+                                                {% endif %}
+                                            </div>
+                                        {% endif %}
+                                        <a href="{% url link_set.primary.view %}">{{link_set.primary.name}}</a>
+                                    </li>
+                                    {% if not forloop.last %}
+                                        <li class="divider"></li>
+                                    {% endif %}
+                                {% endfor %}
+                            </ul>
+                        {% endfor %}
+                    </li>
+                {% endif %}
             </ul>
             {% endif %}
             <ul class="nav navbar-nav navbar-right">

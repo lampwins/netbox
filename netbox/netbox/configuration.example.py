@@ -146,6 +146,20 @@ NAPALM_ARGS = {}
 # Determine how many objects to display per page within a list. (Default: 50)
 PAGINATE_COUNT = 50
 
+# Plugins which are installed and should be enabled
+PLUGINS = [
+    # 'np_my_plugin',
+]
+
+# Configuration settings for each plugin. Required settings are defined by each plugin. Each plugin's config is defined
+# by a dictionary in the key is the name of the plugin.
+PLUGINS_CONFIG = {
+    # 'np_my_plugin': {
+    #     'SETTING1': True,
+    #     'SETTING2': False
+    # }
+}
+
 # When determining the primary IP address for a device, IPv6 is preferred over IPv4 by default. Set this to True to
 # prefer IPv4 instead.
 PREFER_IPV4 = False

@@ -79,6 +79,21 @@ if settings.METRICS_ENABLED:
         path('', include('django_prometheus.urls')),
     ]
 
+# Include plugins, ingoring those plugins which do not have URLs
+for plugin in settings.PLUGINS:
+    try:
+        _patterns += [
+            path(r'plugins/{}/'.format(plugin), include('{}.urls'.format(plugin)))
+        ]
+    except ImportError:
+        pass
+    try:
+        _patterns += [
+            path(r'api/plugins/{}/'.format(plugin), include('{}.api.urls'.format(plugin)))
+        ]
+    except ImportError:
+        pass
+
 # Prepend BASE_PATH
 urlpatterns = [
     path(r'{}'.format(settings.BASE_PATH), include(_patterns))
